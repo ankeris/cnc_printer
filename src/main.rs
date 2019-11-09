@@ -6,8 +6,6 @@ use rppal::gpio::Gpio;
 use rppal::gpio::OutputPin;
 
 // Gpio uses BCM pin numbering. BCM GPIO 23 is tied to physical pin 16.
-// const GPIO_LED: u8 = 14;
-
 const STEP_SEQUENCE: [[i8; 4]; 8] = [
     [1,0,0,1],
 	[1,0,0,0],
