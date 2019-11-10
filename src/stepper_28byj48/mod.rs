@@ -1,3 +1,17 @@
+// # # # # # # # # # # # # # # # # # # # # # 
+// # Motor:   28BYJ_49
+// # Driver:  ULN2003
+// # # # # # # # # # # # # # # # # # # # # # 
+
+// # # # I N I T.  E X A M P L E # # # # # #
+// #
+// # let my_motor = Stepper28BYJ48::new([18,17,27,22]);
+// # my_motor.rotate(50.0, Direction::CW);
+// # thread::sleep(Duration::from_millis(200));
+// # my_motor.rotate(50.0, Direction::CCW);
+// #
+// # # # # # # # # # # # # # # # # # # # # #
+
 use std::error::Error;
 use std::thread;
 use std::time::Duration;
@@ -49,10 +63,9 @@ impl Stepper28BYJ48 {
     #[inline]
     pub fn rotate(&self, degree: f32, direction: Direction) {
         let steps_calculation: f32 = degree as f32 * 11.377777777777;
-
         let mut row_pos: usize = 0;
-        
         let steps: i64 = steps_calculation.round() as i64;
+
         let mut motor_sequence_setup = self.motor_sequence_setup().unwrap();
         
         for _row in 0..steps {
