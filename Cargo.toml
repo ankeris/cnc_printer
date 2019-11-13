@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 rppal = "0.11.3"
+gcode = "0.5.2"

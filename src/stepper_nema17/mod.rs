@@ -22,7 +22,7 @@ pub struct StepperNEMA17 {
 
 impl StepperNEMA17 {
     #[inline]
-    fn default_micro_stepping_values(&self) -> MicroStepping {
+    fn _default_micro_stepping_values(&self) -> MicroStepping {
         (1, 0, 0)
     }
 
@@ -36,7 +36,7 @@ impl StepperNEMA17 {
         }
     }
 
-    pub fn set_micro_stepping(&mut self, micro_step_values: MicroStepping) {
+    pub fn _set_micro_stepping(&mut self, micro_step_values: MicroStepping) {
         self.micro_stepping_values = micro_step_values;
     }
 
@@ -50,7 +50,7 @@ impl StepperNEMA17 {
 
         ms1_step.set_high();
         ms2_step.set_low();
-        ms3_step.set_low();
+        ms3_step.set_high();
 
         match direction {
             Direction::CW => {
