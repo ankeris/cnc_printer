@@ -18,6 +18,7 @@ pub struct StepperNEMA17 {
     direction_pin: u8,
     micro_stepping_pins: [u8; 3],
     micro_stepping_values: MicroStepping,
+    last_position_value: f32,
 }
 
 impl StepperNEMA17 {
@@ -33,11 +34,16 @@ impl StepperNEMA17 {
             direction_pin,
             micro_stepping_pins,
             micro_stepping_values: (1, 0, 0),
+            last_position_value: 0.0,
         }
     }
 
     pub fn _set_micro_stepping(&mut self, micro_step_values: MicroStepping) {
         self.micro_stepping_values = micro_step_values;
+    }
+
+    pub fn mut_last_position_value(&mut self) -> &mut f32 {
+        &mut self.last_position_value
     }
 
     pub fn rotate(&self, steps: i64, speed: u64, direction: Direction) -> Result<(), Box<dyn Error>> {
@@ -54,10 +60,10 @@ impl StepperNEMA17 {
 
         match direction {
             Direction::CW => {
-                dir_pin.set_low();
+                dir_pin.set_high();
             }
             Direction::CCW => {
-                dir_pin.set_high();
+                dir_pin.set_low();
             }
         }
 

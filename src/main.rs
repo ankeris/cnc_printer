@@ -18,27 +18,43 @@ use enums::{Direction};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let gcode_from_file = read_to_string("src/test.ngc").unwrap();
-    let smth = parse(string_to_static_str(gcode_from_file));
+    let parsed_gcode_lines = parse(string_to_static_str(gcode_from_file));
 
-    for string in smth {
-        for string2 in string.gcodes() {
-            if string2.arguments().len() > 0 {
-                println!("{:?}", string2.arguments());
+    // Implementation of new NEMA17 Y Axis controll Motor
+    let mut y_axis_motor = StepperNEMA17::new(18, 15, [7, 5, 3]);
+
+    for string in parsed_gcode_lines {
+        for gcodes in string.gcodes() {
+            let words_vector = gcodes.arguments();
+            // some return empty vec. so check
+            if words_vector.len() > 0 {
+                // Loop through words and find Letters
+                for word_info in words_vector {
+
+                    // Move Y axis
+                    if word_info.letter == 'Y' {
+                        let last_pos = *y_axis_motor.mut_last_position_value();
+                        let diff = f32::abs_sub(last_pos, word_info.value);
+                        println!("{:?}", diff);
+                        *y_axis_motor.mut_last_position_value() = word_info.value;
+                    }
+                }
             }
         }
     }
     
-    // Example Implementation of new NEMA17 Motor
-    let my_motor = StepperNEMA17::new(18, 15, [7, 5, 3]);
+    
     let wait_time = 1000;
-
-    my_motor.rotate(5000, 50, Direction::CW).unwrap();
+    y_axis_motor.rotate(6000, 50, Direction::CW).unwrap();
     thread::sleep(Duration::from_millis(wait_time));
-    my_motor.rotate(12500, 50, Direction::CCW).unwrap();
-    thread::sleep(Duration::from_millis(wait_time));
-    my_motor.rotate(12500, 50, Direction::CW).unwrap();
-    thread::sleep(Duration::from_millis(wait_time));
-    my_motor.rotate(5000, 50, Direction::CCW).unwrap();
+    y_axis_motor.rotate(6000, 50, Direction::CCW).unwrap();
+    // y_axis_motor.rotate(3000, 50, Direction::CW).unwrap();
+    // thread::sleep(Duration::from_millis(wait_time));
+    // y_axis_motor.rotate(5000, 50, Direction::CCW).unwrap();
+    // thread::sleep(Duration::from_millis(wait_time));
+    // y_axis_motor.rotate(5000, 50, Direction::CW).unwrap();
+    // thread::sleep(Duration::from_millis(wait_time));
+    // y_axis_motor.rotate(3000, 50, Direction::CCW).unwrap();
 
     Ok(())
 }
