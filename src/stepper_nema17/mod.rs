@@ -12,6 +12,7 @@ use rppal::gpio::OutputPin;
 
 use crate::enums::{Direction, MicroStepping};
 
+#[warn(dead_code)]
 #[derive(Debug)]
 pub struct StepperNEMA17 {
     step_pin: u8,
@@ -46,7 +47,7 @@ impl StepperNEMA17 {
         &mut self.last_position_value
     }
 
-    pub fn rotate(&self, steps: i64, speed: u64, direction: Direction) -> Result<(), Box<dyn Error>> {
+    pub fn rotate(&self, steps: i64, delay_per_step: u64, direction: Direction) -> Result<(), Box<dyn Error>> {
         let mut st_pin = Gpio::new()?.get(self.step_pin)?.into_output();
         let mut dir_pin = Gpio::new()?.get(self.direction_pin)?.into_output();
 
@@ -66,13 +67,13 @@ impl StepperNEMA17 {
                 dir_pin.set_low();
             }
         }
-
+        
         Ok(
             for _x in 0..steps {
                 st_pin.set_high();
-                thread::sleep(Duration::from_micros(speed));
+                thread::sleep(Duration::from_micros(delay_per_step));
                 st_pin.set_low();
-                thread::sleep(Duration::from_micros(speed));
+                thread::sleep(Duration::from_micros(delay_per_step));
             }
         )
     }
