@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let parsed_gcode_lines = parse(string_to_static_str(gcode_from_file));
 
     // Implementation of new NEMA17 Y Axis controll Motor
-    let mut x_axis_motor = StepperNEMA17::new(1, 2, [3, 4, 5]);
+    let mut x_axis_motor = StepperNEMA17::new(24, 23, [11, 9, 10]);
     let y_axis_motor = Arc::new(RwLock::new(StepperNEMA17::new(18, 15, [7, 5, 3])));
     // Create a clone to be used in a thread
     let y_axis_motor_clone = y_axis_motor.clone();
@@ -60,14 +60,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                     
                     // CHECK X                    
                     if word_info.letter == 'X' {
+                        
                         let last_pos = *x_axis_motor.mut_last_position_value();
-                        let diff = last_pos.abs() - word_info.value.abs();
-                        // println!("{}: {:?}", 'X', diff.abs());
-                        // println!("{}", 'X');
+                        let mut diff = last_pos.abs() - word_info.value.abs();
+                        diff = (diff * 1000.0).round() / 1000.0;
+                        let steps = (diff * one_unit_distance) as i64;
+                        println!("{}: {:?}", 'X', steps);
+                        if steps != 0 {
+                            let raw_delay = (moving_time as f32 / steps as f32) * 1000.0;
+                            let delay_abs = raw_delay.abs().round() as u64;
+                            if steps > 0 {
+                                x_axis_motor.rotate(steps.abs(), delay_abs, Direction::CW).unwrap();
+                            } else if steps < 0 {
+                                x_axis_motor.rotate(steps.abs(), delay_abs, Direction::CCW).unwrap();
+                            }
+                        }
                         *x_axis_motor.mut_last_position_value() = word_info.value;
                     }
                 }
-                thread::sleep(Duration::from_millis(300));
+                // thread::sleep(Duration::from_millis(500));
             }
         }
     }
@@ -80,11 +91,11 @@ fn y_axis_motor_thread(y_axis_motor_clone: Arc<RwLock<StepperNEMA17>>, r_main: R
             let y_axis_motor_clone = y_axis_motor_clone.write().unwrap();
             let (steps, delay_abs): (i64, u64) = received;
             // println!("Steps: {:?}, {:?}", steps, delay_abs);
-            println!("{}", steps);
+            println!("Y: {}", steps);
             if steps > 0 {
-                y_axis_motor_clone.rotate(steps.abs(), delay_abs, Direction::CW).unwrap();
-            } else if steps < 0 {
                 y_axis_motor_clone.rotate(steps.abs(), delay_abs, Direction::CCW).unwrap();
+            } else if steps < 0 {
+                y_axis_motor_clone.rotate(steps.abs(), delay_abs, Direction::CW).unwrap();
             }
         }
         // thread::sleep(Duration::from_millis(wait_time));
