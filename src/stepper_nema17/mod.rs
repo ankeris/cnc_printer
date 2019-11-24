@@ -71,9 +71,8 @@ impl StepperNEMA17 {
         Ok(
             for _x in 0..steps {
                 st_pin.set_high();
-                thread::sleep(Duration::from_micros(delay_per_step));
+                thread::sleep(Duration::from_nanos(delay_per_step));
                 st_pin.set_low();
-                thread::sleep(Duration::from_micros(delay_per_step));
             }
         )
     }
