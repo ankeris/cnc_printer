@@ -50,15 +50,10 @@ impl StepperNEMA17 {
     pub fn rotate(&self, steps: i64, delay_per_step: u64, direction: Direction) -> Result<(), Box<dyn Error>> {
         let mut st_pin = Gpio::new()?.get(self.step_pin)?.into_output();
         let mut dir_pin = Gpio::new()?.get(self.direction_pin)?.into_output();
-
         let mut ms1_step: OutputPin = Gpio::new()?.get(self.micro_stepping_pins[0])?.into_output();
         let mut ms2_step: OutputPin = Gpio::new()?.get(self.micro_stepping_pins[1])?.into_output();
         let mut ms3_step: OutputPin = Gpio::new()?.get(self.micro_stepping_pins[2])?.into_output();
-
-        ms1_step.set_high();
-        ms2_step.set_low();
-        ms3_step.set_high();
-
+        
         match direction {
             Direction::CW => {
                 dir_pin.set_high();
@@ -67,6 +62,11 @@ impl StepperNEMA17 {
                 dir_pin.set_low();
             }
         }
+
+        ms1_step.set_high();
+        ms2_step.set_high();
+        ms3_step.set_low();
+
         
         Ok(
             for _x in 0..steps {
