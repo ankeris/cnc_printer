@@ -14,6 +14,9 @@ use stepper_nema17::StepperNEMA17;
 
 mod enums;
 use enums::{Direction};
+
+use rppal::gpio::Gpio;
+use rppal::gpio::InputPin;
 // - - - - - - - - - - - - - - - - - - - - - - - - 
 // Note that - GPIO uses BCM pin numbering. BCM GPIO 23 is tied to physical pin 16.
 // - - - - - - - - - - - - - - - - - - - - - - - -
@@ -21,11 +24,11 @@ use enums::{Direction};
 fn main() -> Result<(), Box<dyn Error>> {
     let gcode_from_file = read_to_string("src/test.ngc").unwrap();
     let parsed_gcode_lines = parse(string_to_static_str(gcode_from_file));
-
+    calibrate();
     // Constants
     const ONE_UNIT_DISTANCE: f32 = 500.0;
     const MOVING_TIME: i64 = 2 * 1000000000; // micro-seconds
-
+    
     // Impl. stepper motor that raises the pen
     let pen_raise_motor = Stepper28BYJ48::new([12,21,20,16]);
 
@@ -59,13 +62,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     // Raise pen
                     if word_info.letter == 'P' {
-                        pen_raise_motor.rotate(100.0, Direction::CW);
+                        pen_raise_motor.rotate(5.0, Direction::CW);
                         println!("Raise");
                     }
 
                     // Drop pen
                     if word_info.letter == 'S' {
-                        pen_raise_motor.rotate(100.0, Direction::CCW);
+                        pen_raise_motor.rotate(5.0, Direction::CCW);
                         println!("Lower");
                     }
 
@@ -132,4 +135,17 @@ fn create_motor_thread(motor_clone: Arc<RwLock<StepperNEMA17>>, thread_receiver:
 
 fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
+}
+
+fn calibrate() -> Result<(), Box<dyn Error>> {
+    let pin_btn: InputPin = Gpio::new()?.get(10)?.into_input_pulldown();
+    let mut is_pressed = false;
+    while is_pressed != true {
+        if pin_btn.is_high() {
+            is_pressed = true;
+            println!("pressed");
+        } 
+        thread::sleep(Duration::from_millis(50));
+    }
+    Ok(println!("Done."))
 }
