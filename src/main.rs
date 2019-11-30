@@ -24,9 +24,9 @@ use rppal::gpio::InputPin;
 fn main() -> Result<(), Box<dyn Error>> {
     let gcode_from_file = read_to_string("src/test.ngc").unwrap();
     let parsed_gcode_lines = parse(string_to_static_str(gcode_from_file));
-    calibrate();
+    
     // Constants
-    const ONE_UNIT_DISTANCE: f32 = 500.0;
+    const ONE_UNIT_DISTANCE: f32 = 900.0;
     const MOVING_TIME: i64 = 2 * 1000000000; // micro-seconds
     
     // Impl. stepper motor that raises the pen
@@ -39,13 +39,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Create motor clones to be used in a threads
     let y_axis_motor_clone = y_axis_motor.clone();
     let x_axis_motor_clone = x_axis_motor.clone();
-
     // Spawn a thread and initialize it with y_axis clone motor
     let (y_thread_sender, y_thread_receiver) = mpsc::channel();
     let (x_thread_sender, x_thread_receiver) = mpsc::channel();
     let y_thread = create_motor_thread(y_axis_motor_clone, y_thread_receiver);
     let x_thread = create_motor_thread(x_axis_motor_clone, x_thread_receiver);
-
+    // Before every received task we want to calibrate first
+    
+    calibrate(17, &x_thread_sender, Direction::CW);
+    calibrate(10, &y_thread_sender, Direction::CCW);
+    
     for string in parsed_gcode_lines {
         for gcodes in string.gcodes() {
             let words_vector = gcodes.arguments();
@@ -62,13 +65,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     // Raise pen
                     if word_info.letter == 'P' {
-                        pen_raise_motor.rotate(5.0, Direction::CW);
+                        pen_raise_motor.rotate(15.0, Direction::CCW);
                         println!("Raise");
                     }
 
                     // Drop pen
                     if word_info.letter == 'S' {
-                        pen_raise_motor.rotate(5.0, Direction::CCW);
+                        pen_raise_motor.rotate(15.0, Direction::CW);
                         println!("Lower");
                     }
 
@@ -88,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if word_info.letter == 'Y' {
                         let last_pos = *y_axis_motor.write().unwrap().mut_last_position_value();
                         let diff = last_pos.abs() - word_info.value.abs();
-                        let steps = (diff * ONE_UNIT_DISTANCE) as i64;
+                        let steps = (diff * -ONE_UNIT_DISTANCE) as i64;
                         let raw_delay = MOVING_TIME as f32 / steps as f32;
                         let delay_abs = raw_delay.abs() as u64;
                         y_steps = steps;
@@ -107,7 +110,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
                 println!("--------------");
-                thread::sleep(Duration::from_millis(2200));
+                thread::sleep(Duration::from_millis(2000));
             }
         }
     }
@@ -137,15 +140,25 @@ fn string_to_static_str(s: String) -> &'static str {
     Box::leak(s.into_boxed_str())
 }
 
-fn calibrate() -> Result<(), Box<dyn Error>> {
-    let pin_btn: InputPin = Gpio::new()?.get(10)?.into_input_pulldown();
+fn calibrate(calibration_btn_pin: u8, thread_sender: &mpsc::Sender<(i64, u64)>, direction: Direction) -> Result<(), Box<dyn Error>> {
+    // let pin_btn: InputPin = Gpio::new()?.get(10)?.into_input_pulldown();
+    let pin_btn: InputPin = Gpio::new()?.get(calibration_btn_pin)?.into_input_pulldown();
     let mut is_pressed = false;
     while is_pressed != true {
+        match direction {
+            Direction::CW => {
+                thread_sender.send((1, 1000000)).unwrap();
+            }
+            Direction::CCW => {
+                thread_sender.send((-1, 1000000)).unwrap();
+            }
+        }
+
         if pin_btn.is_high() {
             is_pressed = true;
             println!("pressed");
         } 
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(5));
     }
     Ok(println!("Done."))
 }
